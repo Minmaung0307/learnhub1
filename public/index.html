@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="my">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>LearnHub</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/themes.css" />
+    <link rel="stylesheet" href="css/utilities.css" />
+    <link rel="stylesheet" href="css/pages/tasks.css" />
+
+    <!-- EmailJS UMD (global 'emailjs') -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+    <!-- Expose configs (fill with your keys) -->
+    <script>
+      window.__FIREBASE_CONFIG = {
+        apiKey: "AIzaSyDVsqq0FLiGUp1I7JjH_yeYZBpqlDSo-uM",
+        authDomain: "learnhub-mm.firebaseapp.com",
+        projectId: "learnhub-mm",
+        storageBucket: "learnhub-mm.appspot.com",
+        messagingSenderId: "961341989824",
+        appId: "1:961341989824:web:760be616c75561008cde25",
+        measurementId: "G-LM292D5D36",
+      };
+      window.__EMAILJS_CONFIG = {
+        publicKey: "WT0GOYrL9HnDKvLUf",
+        serviceId: "service_z9tkmvr",
+        templateId: "template_q5q471f",
+        toEmail: "minmaung0307@gmail.com",
+      };
+      window.__PAYPAL_CLIENT_ID =
+        "AVpfmQ8DyyatFaAGQ3Jg58XtUt_2cJDr1leqcc_JI8LvKIR2N5WB_yljqCOTTCtvK1hFJ7Q9X0ojXsEC";
+    </script>
+
+    <!-- Firebase v10 (modular) -->
+    <script type="module" src="js/main.js"></script>
+  </head>
+  <body class="theme-default">
+    <aside id="sidebar">
+      <div class="logo" title="LearnHub">LH</div>
+      <nav id="side-nav">
+        <a href="#/dashboard"
+          ><span class="icon">🏠</span
+          ><span class="nav-label">Dashboard</span></a
+        >
+        <a href="#/courses"
+          ><span class="icon">📚</span><span class="nav-label">Courses</span></a
+        >
+        <a href="#/mylearning"
+          ><span class="icon">🧭</span
+          ><span class="nav-label">My Learning</span></a
+        >
+        <a href="#/tasks"
+          ><span class="icon">✅</span><span class="nav-label">Tasks</span></a
+        >
+        <a href="#/chat"
+          ><span class="icon">💬</span><span class="nav-label">Chat</span></a
+        >
+        <a href="#/contact"
+          ><span class="icon">✉️</span><span class="nav-label">Contact</span></a
+        >
+        <a href="#/profile"
+          ><span class="icon">👤</span><span class="nav-label">Profile</span></a
+        >
+        <a href="#/settings"
+          ><span class="icon">⚙️</span
+          ><span class="nav-label">Settings</span></a
+        >
+        <a href="#/admin" data-admin="true"
+          ><span class="icon">🛠️</span><span class="nav-label">Admin</span></a
+        >
+        <a href="#/login" data-action="logout"
+          ><span class="icon">⏏️</span
+          ><span class="nav-label">Sign out</span></a
+        >
+      </nav>
+    </aside>
+
+    <header id="topbar">
+      <button id="burger" class="only-mobile" aria-label="Open Menu">☰</button>
+      <div class="brand">LearnHub</div>
+      <div id="topbar-right">
+        <input id="global-search" type="search" placeholder="Search..." />
+        <span id="today"></span>
+        <img id="avatar" class="avatar" alt="avatar" />
+      </div>
+    </header>
+
+    <main id="app">
+      <!-- router outlet -->
+    </main>
+
+    <template id="tpl-login">
+      <section class="card w-420">
+        <h2>Login</h2>
+        <form id="login-form">
+          <input type="email" id="login-email" placeholder="Email" required />
+          <input
+            type="password"
+            id="login-pass"
+            placeholder="Password"
+            required
+          />
+          <button type="submit" class="btn primary">Login</button>
+        </form>
+        <div class="row gap">
+          <button id="btn-signup" class="btn">Sign up</button>
+          <button id="btn-forgot" class="btn ghost">Forgot password</button>
+        </div>
+      </section>
+    </template>
+  </body>
+</html>

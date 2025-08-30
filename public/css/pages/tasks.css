@@ -1,0 +1,20 @@
+.lane {
+  min-height: 200px;
+  border: 1px dashed #2c3a66;
+  border-radius: 12px;
+  padding: 8px;
+  background: #0b1634;
+}
+.task {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid #2c3a66;
+  border-radius: 10px;
+  margin: 6px 0;
+  background: #0f1830;
+}
+.muted {
+  opacity: 0.7;
+}

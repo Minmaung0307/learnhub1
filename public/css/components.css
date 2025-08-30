@@ -1,0 +1,12 @@
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #15224a;
+  border: 1px solid #2c3a66;
+  color: #cfe3ff;
+  font-size: 12px;
+}
+.course-card + .course-card {
+  margin-top: 10px;
+}

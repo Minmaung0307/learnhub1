@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() {
+      return signedIn() &&
+        get(/databases/$(db)/documents/roles/$(request.auth.uid)).data.role == "admin";
+    }
+
+    match /roles/{uid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow write: if isAdmin();
+    }
+
+    match /users/{uid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow write: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /announcements/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /courses/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /courses/{courseId}/lessons/{lessonId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // per-user progress/bookmarks/notes
+    match /users/{uid}/progress/{doc} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+    match /users/{uid}/bookmarks/{doc} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+    match /users/{uid}/notes/{doc} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // tasks (ToDo/InProgress/Done)
+    match /users/{uid}/tasks/{taskId} {
+      allow read, write: if signedIn() && request.auth.uid == uid || isAdmin();
+    }
+
+    // chat (open read; write only if signed in)
+    match /rooms/{roomId}/messages/{msgId} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
+
+    // payments/enrollments (simple)
+    match /users/{uid}/enrollments/{enrId} {
+      allow read, write: if signedIn() && request.auth.uid == uid || isAdmin();
+    }
+  }
+}
