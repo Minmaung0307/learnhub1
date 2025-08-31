@@ -1,3 +1,4 @@
+import { app, auth, db, storage } from "../firebase.js";
 // public/js/features/mylearning.js
 import { col, ref } from "../core/fs-helpers.js";
 

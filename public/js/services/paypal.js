@@ -1,3 +1,4 @@
+import { app, auth, db, storage } from "../firebase.js";
 export async function ensurePayPal(clientId) {
   if (window.paypal) return window.paypal;
   await new Promise((resolve, reject) => {

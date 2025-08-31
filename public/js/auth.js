@@ -40,7 +40,7 @@ export async function forgot(email) {
   return sendPasswordResetEmail(auth, email);
 }
 
-export async function isAdmin(uid) {
+export async function isAdminRole(uid) {
   const snap = await getDoc(doc(db, "roles", uid));
   return snap.exists() && snap.data().role === "admin";
 }

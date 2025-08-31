@@ -1,3 +1,4 @@
+import { app, auth, db, storage } from "./firebase.js";
 // public/js/main.js  —— CLEAN SINGLE VERSION (no duplicate imports)
 import {
   watchAuth,

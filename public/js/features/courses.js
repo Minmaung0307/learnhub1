@@ -1,3 +1,4 @@
+import { app, auth, db, storage } from "../firebase.js";
 // public/js/features/courses.js
 import { db, auth } from "../firebase.js";
 import {

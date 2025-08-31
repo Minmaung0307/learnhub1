@@ -1,3 +1,4 @@
+import { app, auth, db, storage } from "../firebase.js";
 // public/js/features/contact.js
 import { initEmail } from "../services/email.js";
 

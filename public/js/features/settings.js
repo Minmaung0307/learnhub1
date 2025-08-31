@@ -1,3 +1,4 @@
+import { app, auth, db, storage } from "../firebase.js";
 export function mountSettings(el) {
   el.innerHTML = `
     <section class="card" style="max-width:480px">

@@ -1,3 +1,4 @@
+import { app, auth, db, storage } from "../firebase.js";
 // /public/js/services/seed.js
 import { Router } from "../core/router.js";
 
@@ -14,7 +15,7 @@ async function getDb() {
     return getFirestore(getApp());
   } catch {
     // compat
-    return firebase.firestore();
+    return db;
   }
 }
 
@@ -28,7 +29,7 @@ export async function seedAllDemo() {
   const db = await getDb();
   const me = await currentUser();
   if (!me) throw new Error("Sign in first");
-  const isAdmin = await checkAdmin(db, me.uid);
+  const isAdminRole = await checkAdmin(db, me.uid);
   if (!isAdmin) throw new Error("Admin only");
 
   // Collections to reset
@@ -261,7 +262,7 @@ async function currentUser() {
   } catch {
     // compat
     return new Promise((res) =>
-      firebase.auth().onAuthStateChanged((u) => res(u))
+      auth.onAuthStateChanged((u) => res(u))
     );
   }
 }

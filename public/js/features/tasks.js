@@ -1,3 +1,4 @@
+import { app, auth, db, storage } from "../firebase.js";
 // /public/js/features/tasks.js
 import { auth, db } from "../firebase.js";
 import { col, ref } from "../core/fs-helpers.js";

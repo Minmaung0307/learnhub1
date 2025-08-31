@@ -1,3 +1,4 @@
+import { app, auth, db, storage } from "../firebase.js";
 // /public/js/core/router.js
 // ES module
 export const Router = (() => {
