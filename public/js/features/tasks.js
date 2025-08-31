@@ -1,96 +1,153 @@
-import { db, auth } from "../firebase.js";
+// public/js/features/tasks.js
 import {
+  getFirestore,
   collection,
-  addDoc,
   doc,
-  setDoc,
+  addDoc,
   deleteDoc,
+  updateDoc,
+  onSnapshot,
   query,
   where,
-  onSnapshot,
+  orderBy,
+  serverTimestamp,
   getDocs,
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  Timestamp,
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-const STATUSES = ["todo", "inprogress", "done"];
+const db = getFirestore();
 
-async function cleanupDone(uid) {
-  const twoDays = Date.now() - 1000 * 60 * 60 * 24 * 2;
-  const q = query(
-    collection(db, "users", uid, "tasks"),
-    where("status", "==", "done")
-  );
-  const snap = await getDocs(q);
-  await Promise.all(
-    snap.docs.map((d) => {
-      const x = d.data();
-      if (x.completedAt && x.completedAt < twoDays) return deleteDoc(d.ref);
-    })
-  );
+const LANES = [
+  { key: "todo", title: "To Do" },
+  { key: "inprogress", title: "In Progress" },
+  { key: "done", title: "Done" },
+];
+
+function laneColumnHtml(l) {
+  return `
+    <section class="kanban-col" data-lane="${l.key}">
+      <header class="row between">
+        <h3>${l.title}</h3>
+        ${
+          l.key === "todo"
+            ? `
+          <button class="btn xs primary" data-action="addTask">
+            <i class="ri-add-line"></i> Add
+          </button>`
+            : ``
+        }
+      </header>
+      <div class="kanban-dropzone" data-lane="${l.key}"></div>
+    </section>
+  `;
 }
 
-export function mountTasks(el, user) {
-  el.innerHTML = `
-    <section class="row" style="gap:12px">
-      <div class="card" style="flex:1"><h3>To Do</h3><div class="lane" data-status="todo"></div></div>
-      <div class="card" style="flex:1"><h3>In Progress</h3><div class="lane" data-status="inprogress"></div></div>
-      <div class="card" style="flex:1"><h3>Done</h3><div class="lane" data-status="done"></div></div>
+export function mountTasks(root, user) {
+  root.innerHTML = `
+    <section class="page">
+      <h2 class="mb-12">Tasks</h2>
+      <div class="kanban grid-3 gap-12"></div>
     </section>
-    <div class="row" style="margin-top:12px">
-      <input id="task-title" placeholder="New task..." />
-      <button class="btn primary" id="add-task">Add</button>
-    </div>
   `;
+  const wrap = root.querySelector(".kanban");
 
-  const lanes = el.querySelectorAll(".lane");
-  lanes.forEach((l) => {
-    l.addEventListener("dragover", (e) => e.preventDefault());
-    l.addEventListener("drop", async (e) => {
-      const id = e.dataTransfer.getData("text");
-      const status = l.dataset.status;
-      const ref = doc(db, "users", user.uid, "tasks", id);
-      const patch = { status };
-      if (status === "done") patch.completedAt = Date.now();
-      await setDoc(ref, patch, { merge: true });
+  if (!user?.uid) {
+    wrap.innerHTML = `<p class="muted">Please login to manage tasks.</p>`;
+    return;
+  }
+
+  wrap.innerHTML = LANES.map(laneColumnHtml).join("");
+
+  const tasksCol = collection(db, "users", user.uid, "tasks");
+
+  // add task (in ToDo lane header)
+  wrap
+    .querySelector('[data-action="addTask"]')
+    ?.addEventListener("click", async () => {
+      const title = prompt("Task title?");
+      if (!title) return;
+      await addDoc(tasksCol, {
+        title,
+        status: "todo",
+        createdAt: serverTimestamp(),
+      });
+    });
+
+  // live query per-lane
+  LANES.forEach(({ key }) => {
+    const zone = wrap.querySelector(`.kanban-dropzone[data-lane="${key}"]`);
+    const qy = query(
+      tasksCol,
+      where("status", "==", key),
+      orderBy("createdAt", "desc")
+    );
+    onSnapshot(qy, (snap) => {
+      zone.innerHTML = "";
+      snap.forEach((d) => {
+        const t = d.data();
+        const card = document.createElement("article");
+        card.className = "task-card";
+        card.draggable = true;
+        card.dataset.id = d.id;
+        card.innerHTML = `
+          <div class="row between">
+            <strong>${t.title || "(untitled)"}</strong>
+            <div class="row gap-6">
+              <button class="icon btn xs" data-act="edit"><i class="ri-edit-2-line"></i></button>
+              <button class="icon btn xs danger" data-act="del"><i class="ri-delete-bin-6-line"></i></button>
+            </div>
+          </div>
+        `;
+        // DnD
+        card.addEventListener("dragstart", (e) => {
+          e.dataTransfer.setData("text/task-id", d.id);
+        });
+        // edit
+        card.querySelector('[data-act="edit"]').onclick = async () => {
+          const title = prompt("Edit title:", t.title || "");
+          if (title === null) return;
+          await updateDoc(doc(tasksCol, d.id), { title });
+        };
+        // delete
+        card.querySelector('[data-act="del"]').onclick = async () => {
+          if (!confirm("Delete this task?")) return;
+          await deleteDoc(doc(tasksCol, d.id));
+        };
+        zone.appendChild(card);
+      });
     });
   });
 
-  el.querySelector("#add-task").onclick = async () => {
-    const title = el.querySelector("#task-title").value.trim();
-    if (!title) return;
-    await addDoc(collection(db, "users", user.uid, "tasks"), {
-      title,
-      status: "todo",
-      createdAt: Date.now(),
-    });
-    el.querySelector("#task-title").value = "";
-  };
-
-  // live
-  STATUSES.forEach((st) => {
-    const lane = el.querySelector(`.lane[data-status="${st}"]`);
-    onSnapshot(collection(db, "users", user.uid, "tasks"), (snap) => {
-      const items = snap.docs
-        .filter((d) => d.data().status === st)
-        .map((d) => {
-          const x = d.data();
-          return `<div class="task" draggable="true" data-id="${d.id}">
-          <span>${x.title}</span>
-          <button data-del="${d.id}" class="btn ghost" title="Delete">✕</button>
-        </div>`;
-        })
-        .join("");
-      lane.innerHTML = items || `<div class="muted">No ${st} tasks.</div>`;
-      lane.querySelectorAll(".task").forEach((card) => {
-        card.addEventListener("dragstart", (e) =>
-          e.dataTransfer.setData("text", card.dataset.id)
-        );
-      });
-      lane.querySelectorAll("[data-del]").forEach((btn) => {
-        btn.onclick = () =>
-          deleteDoc(doc(db, "users", user.uid, "tasks", btn.dataset.del));
-      });
+  // Drop zones
+  wrap.querySelectorAll(".kanban-dropzone").forEach((zone) => {
+    zone.addEventListener("dragover", (e) => e.preventDefault());
+    zone.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      const id = e.dataTransfer.getData("text/task-id");
+      if (!id) return;
+      const lane = zone.dataset.lane;
+      const patch = { status: lane };
+      if (lane === "done") patch.completedAt = serverTimestamp();
+      await updateDoc(doc(tasksCol, id), patch);
     });
   });
 
-  cleanupDone(user.uid).catch(console.warn);
+  // Auto-prune Done after 2 days
+  (async () => {
+    const cutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    const qy = query(tasksCol, where("status", "==", "done"));
+    const snap = await getDocs(qy);
+    const batch = [];
+    snap.forEach((d) => {
+      const t = d.data();
+      const ts =
+        t.completedAt instanceof Timestamp ? t.completedAt.toDate() : null;
+      if (ts && ts < cutoff) {
+        batch.push(d.id);
+      }
+    });
+    for (const id of batch) {
+      await deleteDoc(doc(tasksCol, id));
+    }
+  })().catch(console.error);
 }

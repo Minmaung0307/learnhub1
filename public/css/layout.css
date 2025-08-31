@@ -176,18 +176,56 @@ body {
 }
 
 /* /public/css/layout.css — Sidebar (replace your old sidebar block) */
+/* Sidebar: collapsed by default (icons only), expand on hover (desktop) */
 .sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100dvh;
-  width: 72px;
-  background: var(--sidebar-bg, #0f172a); /* solid */
-  color: var(--sidebar-fg, #e2e8f0);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  transition: width 0.18s ease, transform 0.18s ease;
-  z-index: 30;
-  will-change: width, transform;
+  width: 64px;
+  background: var(--surface-2, #0f172a); /* not transparent */
+  color: #e5e7eb;
+  transition: width 0.2s ease;
+  overflow: hidden;
+}
+.sidebar:hover {
+  width: 220px;
+}
+.sidebar .nav .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.sidebar .nav .nav-item .icon {
+  font-size: 20px;
+}
+.sidebar .nav .nav-item .label {
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.sidebar:hover .nav .nav-item .label {
+  opacity: 1;
+}
+.sidebar .nav .nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Topbar: push logout to right (already using .grow spacer) */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface-1, #111827);
+  color: #e5e7eb;
+  padding: 8px 12px;
+}
+.topbar .search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar .btn {
+  cursor: pointer;
 }
 
 .sidebar .brand {

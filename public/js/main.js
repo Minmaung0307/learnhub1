@@ -18,9 +18,7 @@ import {
   doc,
   getDoc,
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-import {
-  getStorage,
-} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js";
 
 // ---- Guard config
 const cfg = window.__FIREBASE_CONFIG;
@@ -37,6 +35,7 @@ const storage = getStorage(app);
 window.LH = { app, auth, db, storage };
 
 // 2) Feature modules (mount-style ONLY; avoid duplicate `view*` imports)
+import { watchAuth, login, logout, signup, forgot, isAdmin } from "./auth.js";
 import { mountDashboard } from "./features/dashboard.js";
 import { mountCourses } from "./features/courses.js";
 import { mountMyLearning } from "./features/mylearning.js";
@@ -58,18 +57,16 @@ try {
 }
 
 // 4) Today date
-function setToday() {
+(function setToday() {
   const el = document.getElementById("today");
   if (!el) return;
   const d = new Date();
-  const fmt = d.toLocaleDateString(undefined, {
+  el.textContent = d.toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
   });
-  el.textContent = fmt;
-}
-setToday();
+})();
 
 // 5) Burger / Sidebar
 document.getElementById("burger")?.addEventListener("click", () => {
@@ -79,28 +76,25 @@ document.getElementById("burger")?.addEventListener("click", () => {
 // 6) Logout (modular only)
 document.getElementById("btnLogout")?.addEventListener("click", async () => {
   try {
-    await signOut(auth);
+    await logout();
   } catch (e) {
-    console.error("Logout failed:", e);
+    console.error(e);
   }
 });
 
 // 7) Live theme + font-size (Settings page buttons will have data-attrs)
 function applyTheme(name) {
-  if (!name) return;
   document.documentElement.dataset.theme = name;
   localStorage.setItem("lh_theme", name);
 }
 function applyFontScale(scale) {
-  if (!scale) return;
   document.documentElement.style.setProperty("--font-scale", scale);
   localStorage.setItem("lh_font", scale);
 }
-// boot
-applyTheme(localStorage.getItem("lh_theme") || "slate");
-applyFontScale(localStorage.getItem("lh_font") || "1.0");
-
-// delegate clicks for [data-theme]/[data-font]
+(function bootTheme() {
+  applyTheme(localStorage.getItem("lh_theme") || "slate");
+  applyFontScale(localStorage.getItem("lh_font") || "1.0");
+})();
 document.addEventListener("click", (e) => {
   const t = e.target.closest("[data-theme]");
   if (t) applyTheme(t.dataset.theme);
@@ -110,26 +104,18 @@ document.addEventListener("click", (e) => {
 
 // 8) Global search → dispatch a custom event
 document.getElementById("globalSearch")?.addEventListener("input", (e) => {
-  const q = e.target.value?.trim() || "";
+  const q = e.target.value.trim();
   window.dispatchEvent(new CustomEvent("app:search", { detail: { q } }));
 });
 
 // 9) Make sidebar links react instantly (no refresh needed)
 document.querySelectorAll(".nav .nav-item").forEach((a) => {
-  a.addEventListener("click", (ev) => {
-    const target = a.getAttribute("href"); // "#/something"
-    if (!target) return;
-    ev.preventDefault();
-    if (location.hash !== target) {
-      location.hash = target;
-    } else {
-      // same route clicked → force re-mount
-      route();
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    const to = a.getAttribute("href");
+    if (to && to !== location.hash) {
+      location.hash = to;
     }
-    // mobile: close sidebar
-    document.body.classList.remove("sidebar-open");
-    // jump to top
-    window.scrollTo({ top: 0, behavior: "auto" });
   });
 });
 
@@ -151,53 +137,75 @@ async function isAdmin(uid) {
 const outlet = document.getElementById("app");
 let CURRENT_USER = null;
 let IS_ADMIN = false;
+let lastHash = null;
 
-function mountLogin(el) {
-  const tpl = document.getElementById("tpl-login");
-  if (!tpl) {
-    el.innerHTML = `<p>Login template missing.</p>`;
+function renderRoute() {
+  const hash = location.hash || "#/dashboard";
+  if (!outlet) return;
+  outlet.innerHTML = "";
+  const host = document.createElement("div");
+  outlet.appendChild(host);
+
+  if (!CURRENT_USER) {
+    mountLogin(host);
     return;
   }
-  el.appendChild(tpl.content.cloneNode(true));
 
-  const form = el.querySelector("#login-form");
-  const btnSignup = el.querySelector("#btn-signup");
-  const btnForgot = el.querySelector("#btn-forgot");
+  switch (true) {
+    case hash.startsWith("#/dashboard"):
+      mountDashboard(host, CURRENT_USER, IS_ADMIN);
+      break;
+    case hash.startsWith("#/courses"):
+      mountCourses(host, CURRENT_USER, IS_ADMIN);
+      break;
+    case hash.startsWith("#/mylearning"):
+      mountMyLearning(host, CURRENT_USER, IS_ADMIN);
+      break;
+    case hash.startsWith("#/tasks"):
+      mountTasks(host, CURRENT_USER, IS_ADMIN);
+      break;
+    case hash.startsWith("#/profile"):
+      mountProfile(host, CURRENT_USER, IS_ADMIN);
+      break;
+    case hash.startsWith("#/chat"):
+      mountChat(host, CURRENT_USER, IS_ADMIN);
+      break;
+    case hash.startsWith("#/settings"):
+      mountSettings(host, CURRENT_USER, IS_ADMIN);
+      break;
+    case hash.startsWith("#/admin"):
+      IS_ADMIN
+        ? mountAdmin(host, CURRENT_USER)
+        : (host.innerHTML = "<p>Admins only.</p>");
+      break;
+    case hash.startsWith("#/contact"):
+      mountContact(host, CURRENT_USER);
+      break;
+    default:
+      mountDashboard(host, CURRENT_USER, IS_ADMIN);
+  }
+  lastHash = hash;
+}
 
-  btnSignup.onclick = async () => {
+// ------ Router ------
+function mountLogin(container) {
+  const tpl = document.getElementById("tpl-login").content.cloneNode(true);
+  container.appendChild(tpl);
+  const form = container.querySelector("#login-form");
+  container.querySelector("#btn-signup").onclick = async () => {
     const email = prompt("Email?");
     const pass = prompt("Password?");
-    try {
-      if (email && pass) {
-        await createUserWithEmailAndPassword(auth, email, pass);
-        alert("Account created. You are signed in.");
-      }
-    } catch (e) {
-      alert(e.message || e);
-    }
+    if (email && pass) await signup(email, pass, email.split("@")[0]);
   };
-
-  btnForgot.onclick = async () => {
+  container.querySelector("#btn-forgot").onclick = async () => {
     const email = prompt("Enter your email to reset password:");
-    try {
-      if (email) {
-        await sendPasswordResetEmail(auth, email);
-        alert("Reset email sent.");
-      }
-    } catch (e) {
-      alert(e.message || e);
-    }
+    if (email) await forgot(email);
   };
-
   form.onsubmit = async (e) => {
     e.preventDefault();
-    const email = el.querySelector("#login-email").value.trim();
-    const pass = el.querySelector("#login-pass").value;
-    try {
-      await signInWithEmailAndPassword(auth, email, pass);
-    } catch (err) {
-      alert(err.message || err);
-    }
+    const email = container.querySelector("#login-email").value.trim();
+    const pass = container.querySelector("#login-pass").value;
+    await login(email, pass);
   };
 }
 
@@ -259,28 +267,21 @@ function route() {
 }
 
 // Hash change → route
-window.addEventListener("hashchange", route);
+window.addEventListener("hashchange", () => {
+  if (location.hash !== lastHash) renderRoute();
+});
 
-// Auth → user + role + UI
-onAuthStateChanged(auth, async (user) => {
+// auth → guard + render
+watchAuth(async (user) => {
   CURRENT_USER = user || null;
   IS_ADMIN = user ? await isAdmin(user.uid) : false;
 
-  // toggle Admin menu visibility
+  // Admin link visible only for admins
   const adminLink = document.querySelector('[href="#/admin"]');
   if (adminLink) adminLink.style.display = IS_ADMIN ? "" : "none";
 
-  // avatar (if you have one in your header)
-  const ava = document.getElementById("avatar");
-  if (ava)
-    ava.src =
-      user?.photoURL ||
-      "https://api.dicebear.com/7.x/thumbs/svg?seed=LearnHub";
-
-  // jump to dashboard when logged in
-  if (user && !location.hash) location.hash = "#/dashboard";
-
-  route();
+  if (CURRENT_USER && !location.hash) location.hash = "#/dashboard";
+  renderRoute();
 });
 
 // First paint
