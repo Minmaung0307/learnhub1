@@ -174,3 +174,113 @@ body {
     display: inline-flex;
   }
 }
+
+/* /public/css/layout.css — Sidebar (replace your old sidebar block) */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100dvh;
+  width: 72px;
+  background: var(--sidebar-bg, #0f172a); /* solid */
+  color: var(--sidebar-fg, #e2e8f0);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  transition: width 0.18s ease, transform 0.18s ease;
+  z-index: 30;
+  will-change: width, transform;
+}
+
+.sidebar .brand {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+}
+
+.sidebar .brand .logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-600));
+  display: grid;
+  place-items: center;
+  color: white;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.sidebar .brand .name {
+  opacity: 0;
+  white-space: nowrap;
+  transition: opacity 0.12s;
+  font-weight: 700;
+}
+
+/* Nav items */
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer; /* hand pointer on all devices */
+  touch-action: manipulation;
+}
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.nav-item .icon {
+  font-size: 22px;
+  min-width: 22px;
+  display: inline-grid;
+  place-items: center;
+}
+.nav-item .label {
+  opacity: 0;
+  white-space: nowrap;
+  transition: opacity 0.12s;
+  font-size: 14px;
+}
+
+/* Hover to expand labels to the RIGHT (not under) */
+.sidebar:hover {
+  width: 220px;
+}
+.sidebar:hover .brand .name,
+.sidebar:hover .nav-item .label {
+  opacity: 1;
+}
+
+/* Collapsed on small screens after navigation */
+.sidebar-collapsed .sidebar {
+  transform: translateX(-100%);
+}
+.sidebar-toggle {
+  display: none;
+}
+@media (max-width: 1024px) {
+  .sidebar-toggle {
+    display: inline-flex;
+  }
+}
+
+/* Main container shifts with sidebar */
+.main {
+  margin-left: 72px;
+  transition: margin-left 0.18s ease;
+}
+.sidebar:hover ~ .main {
+  margin-left: 220px;
+}
+.sidebar-collapsed .main {
+  margin-left: 0;
+}

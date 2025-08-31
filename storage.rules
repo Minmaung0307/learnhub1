@@ -1,13 +1,25 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // Public assets (read-only)
     match /public/{allPaths=**} {
       allow read: if true;
+      allow write: if false;
     }
+
+    // Per-user uploads: users/{uid}/...
     match /users/{uid}/{allPaths=**} {
-      allow read: if request.auth != null;
+      allow read:  if request.auth != null && request.auth.uid == uid;
       allow write: if request.auth != null && request.auth.uid == uid;
     }
+
+    // (Optional) Course assets: read public, write by admin (requires custom claim: admin=true)
+    match /courses/{courseId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Deny everything else
     match /{allPaths=**} {
       allow read, write: if false;
     }

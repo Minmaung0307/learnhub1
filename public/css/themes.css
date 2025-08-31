@@ -1,0 +1,36 @@
+/* /public/css/themes.css */
+:root {
+  --font-scale: 1;
+  --primary: #22d3ee;
+  --primary-600: #0891b2;
+  --bg: #0b1220;
+  --surface: #0b1220;
+  --sidebar-bg: #0f172a;
+  --sidebar-fg: #e2e8f0;
+  font-size: calc(16px * var(--font-scale));
+}
+
+:root[data-theme="slate"] {
+  --primary: #22d3ee;
+  --primary-600: #0891b2;
+  --bg: #0b1220;
+  --surface: #0b1220;
+  --sidebar-bg: #0f172a;
+  --sidebar-fg: #e2e8f0;
+}
+:root[data-theme="emerald"] {
+  --primary: #34d399;
+  --primary-600: #059669;
+  --bg: #071711;
+  --surface: #071711;
+  --sidebar-bg: #0b1f18;
+  --sidebar-fg: #e2f7ed;
+}
+:root[data-theme="royal"] {
+  --primary: #818cf8;
+  --primary-600: #4f46e5;
+  --bg: #0a0b1a;
+  --surface: #0a0b1a;
+  --sidebar-bg: #0f1026;
+  --sidebar-fg: #eaeaff;
+}
