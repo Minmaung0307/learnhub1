@@ -1,4 +1,12 @@
 // public/js/features/mylearning.js
+import { col, ref } from "../core/fs-helpers.js";
+
+// collection
+const profiles = col("profiles"); // == collection(db,"profiles")
+const chapters = col("courses", courseId, "chapters"); // == collection(db,"courses",courseId,"chapters")
+
+// document
+const me = ref("profiles", user.uid); // == doc(db,"profiles",user.uid)
 import { db } from "../firebase.js";
 import {
   collection,

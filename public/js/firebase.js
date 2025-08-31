@@ -1,5 +1,4 @@
 // /public/js/firebase.js
-// Modular Firebase v10 (ESM via CDN). Initialize ONCE and export shared instances.
 import {
   initializeApp,
   getApps,
@@ -9,10 +8,11 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.1/firebas
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js";
 
 const cfg = window.__FIREBASE_CONFIG;
-if (!cfg)
+if (!cfg) {
   throw new Error(
-    'Missing window.__FIREBASE_CONFIG. Put it in index.html before <script type="module" src="js/main.js">.'
+    "Missing window.__FIREBASE_CONFIG in index.html (put it before <script type='module' src='js/main.js'>)."
   );
+}
 
 const app = getApps().length ? getApps()[0] : initializeApp(cfg);
 
