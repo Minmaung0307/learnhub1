@@ -1,12 +1,23 @@
-// Firebase modular SDK from CDN
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+// /public/js/firebase.js
+// Modular Firebase v10 (ESM via CDN). Initialize ONCE and export shared instances.
+import {
+  initializeApp,
+  getApps,
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js";
 
-if (!window.__FIREBASE_CONFIG) throw new Error("Missing __FIREBASE_CONFIG");
+const cfg = window.__FIREBASE_CONFIG;
+if (!cfg)
+  throw new Error(
+    'Missing window.__FIREBASE_CONFIG. Put it in index.html before <script type="module" src="js/main.js">.'
+  );
 
-export const app = initializeApp(window.__FIREBASE_CONFIG);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+const app = getApps().length ? getApps()[0] : initializeApp(cfg);
+
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+export { app, auth, db, storage };
