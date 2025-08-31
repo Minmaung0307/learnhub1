@@ -1,41 +1,13 @@
-// public/js/main.js — Part A
-// --------------------------
-// 1) Firebase (modular) init (reads window.__FIREBASE_CONFIG from index.html)
+// public/js/main.js  —— CLEAN SINGLE VERSION (no duplicate imports)
 import {
-  initializeApp,
-  getApps,
-} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
-import {
-  getAuth,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
-  signOut,
-} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
-import {
-  getFirestore,
-  doc,
-  getDoc,
-} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-import { getStorage } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js";
+  watchAuth,
+  login,
+  logout,
+  signup,
+  forgot,
+  isAdmin as checkIsAdmin,
+} from "./auth.js";
 
-// ---- Guard config
-const cfg = window.__FIREBASE_CONFIG;
-if (!cfg) {
-  throw new Error("Missing window.__FIREBASE_CONFIG in index.html");
-}
-// ---- Initialize only once
-const app = getApps().length ? getApps()[0] : initializeApp(cfg);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
-
-// Expose for other modules (if they need)
-window.LH = { app, auth, db, storage };
-
-// 2) Feature modules (mount-style ONLY; avoid duplicate `view*` imports)
-import { watchAuth, login, logout, signup, forgot, isAdmin } from "./auth.js";
 import { mountDashboard } from "./features/dashboard.js";
 import { mountCourses } from "./features/courses.js";
 import { mountMyLearning } from "./features/mylearning.js";
@@ -44,19 +16,14 @@ import { mountProfile } from "./features/profile.js";
 import { mountChat } from "./features/chat.js";
 import { mountSettings } from "./features/settings.js";
 import { mountAdmin } from "./features/admin.js";
-import { mountContact } from "./features/contact.js"; // if used
-// (သတိ: `viewCourses` / `viewDashboard` တို့နဲ့ ရောမထည့်ပါ — duplicate declaration error မျလာစေနှို့)
+import { mountContact } from "./features/contact.js";
 
-// 3) EmailJS init (optional)
-try {
-  if (window.__EMAILJS_CONFIG?.publicKey && window.emailjs?.init) {
-    window.emailjs.init(window.__EMAILJS_CONFIG.publicKey);
-  }
-} catch (e) {
-  console.warn("EmailJS init skipped:", e);
-}
+// ❗️IMPORTANT: REMOVE any other duplicate import blocks below this line.
+//    There should be only one set of imports in this file.
 
-// 4) Today date
+const outlet = document.getElementById("app");
+
+// Today (topbar)
 (function setToday() {
   const el = document.getElementById("today");
   if (!el) return;
@@ -68,21 +35,21 @@ try {
   });
 })();
 
-// 5) Burger / Sidebar
+// Sidebar burger (mobile)
 document.getElementById("burger")?.addEventListener("click", () => {
   document.body.classList.toggle("sidebar-open");
 });
 
-// 6) Logout (modular only)
+// Logout (top-right icon)
 document.getElementById("btnLogout")?.addEventListener("click", async () => {
   try {
     await logout();
   } catch (e) {
-    console.error(e);
+    console.error("Logout failed", e);
   }
 });
 
-// 7) Live theme + font-size (Settings page buttons will have data-attrs)
+// Theme + font-size (instant)
 function applyTheme(name) {
   document.documentElement.dataset.theme = name;
   localStorage.setItem("lh_theme", name);
@@ -102,54 +69,56 @@ document.addEventListener("click", (e) => {
   if (f) applyFontScale(f.dataset.font);
 });
 
-// 8) Global search → dispatch a custom event
+// Global search (broadcast simple event)
 document.getElementById("globalSearch")?.addEventListener("input", (e) => {
   const q = e.target.value.trim();
   window.dispatchEvent(new CustomEvent("app:search", { detail: { q } }));
 });
 
-// 9) Make sidebar links react instantly (no refresh needed)
-document.querySelectorAll(".nav .nav-item").forEach((a) => {
-  a.addEventListener("click", (e) => {
+// ------ Router (hash-based) ------
+function mountLogin(container) {
+  const tpl = document.getElementById("tpl-login").content.cloneNode(true);
+  container.appendChild(tpl);
+  const form = container.querySelector("#login-form");
+
+  container.querySelector("#btn-signup").onclick = async () => {
+    const email = prompt("Email?");
+    const pass = prompt("Password?");
+    if (email && pass) await signup(email, pass, email.split("@")[0]);
+  };
+  container.querySelector("#btn-forgot").onclick = async () => {
+    const email = prompt("Enter your email to reset password:");
+    if (email) await forgot(email);
+  };
+  form.onsubmit = async (e) => {
     e.preventDefault();
-    const to = a.getAttribute("href");
-    if (to && to !== location.hash) {
-      location.hash = to;
-    }
-  });
-});
-
-// public/js/main.js — Part B
-// --------------------------
-
-// Admin check (roles/{uid}.role === "admin")
-async function isAdmin(uid) {
-  try {
-    const snap = await getDoc(doc(db, "roles", uid));
-    return !!(snap.exists() && snap.data()?.role === "admin");
-  } catch (e) {
-    console.warn("isAdmin check failed:", e);
-    return false;
-  }
+    const email = container.querySelector("#login-email").value.trim();
+    const pass = container.querySelector("#login-pass").value;
+    await login(email, pass);
+  };
 }
 
-// Mounts
-const outlet = document.getElementById("app");
 let CURRENT_USER = null;
 let IS_ADMIN = false;
 let lastHash = null;
 
 function renderRoute() {
-  const hash = location.hash || "#/dashboard";
+  const hash = (location.hash || "#/dashboard").toLowerCase();
   if (!outlet) return;
+
   outlet.innerHTML = "";
   const host = document.createElement("div");
   outlet.appendChild(host);
 
   if (!CURRENT_USER) {
     mountLogin(host);
+    lastHash = hash;
     return;
   }
+
+  // keep admin nav visible only for admins
+  const adminLink = document.querySelector('[href="#/admin"]');
+  if (adminLink) adminLink.style.display = IS_ADMIN ? "" : "none";
 
   switch (true) {
     case hash.startsWith("#/dashboard"):
@@ -187,102 +156,25 @@ function renderRoute() {
   lastHash = hash;
 }
 
-// ------ Router ------
-function mountLogin(container) {
-  const tpl = document.getElementById("tpl-login").content.cloneNode(true);
-  container.appendChild(tpl);
-  const form = container.querySelector("#login-form");
-  container.querySelector("#btn-signup").onclick = async () => {
-    const email = prompt("Email?");
-    const pass = prompt("Password?");
-    if (email && pass) await signup(email, pass, email.split("@")[0]);
-  };
-  container.querySelector("#btn-forgot").onclick = async () => {
-    const email = prompt("Enter your email to reset password:");
-    if (email) await forgot(email);
-  };
-  form.onsubmit = async (e) => {
+// Sidebar clicks → hash change (instant render)
+document.querySelectorAll(".nav .nav-item").forEach((a) => {
+  a.addEventListener("click", (e) => {
     e.preventDefault();
-    const email = container.querySelector("#login-email").value.trim();
-    const pass = container.querySelector("#login-pass").value;
-    await login(email, pass);
-  };
-}
+    const to = a.getAttribute("href");
+    if (to && to !== location.hash) location.hash = to;
+  });
+});
 
-function route() {
-  if (!outlet) return;
-  const hash = (location.hash || "#/dashboard").toLowerCase();
-  outlet.innerHTML = "";
-  const el = document.createElement("div");
-  outlet.appendChild(el);
-
-  if (!CURRENT_USER) {
-    mountLogin(el);
-    return;
-  }
-
-  if (hash.startsWith("#/dashboard")) {
-    mountDashboard(el, { db, auth, user: CURRENT_USER, isAdmin: IS_ADMIN });
-    return;
-  }
-  if (hash.startsWith("#/courses")) {
-    mountCourses(el, { db, auth, user: CURRENT_USER, isAdmin: IS_ADMIN });
-    return;
-  }
-  if (hash.startsWith("#/mylearning")) {
-    mountMyLearning(el, { db, auth, user: CURRENT_USER, isAdmin: IS_ADMIN });
-    return;
-  }
-  if (hash.startsWith("#/tasks")) {
-    mountTasks(el, { db, auth, user: CURRENT_USER, isAdmin: IS_ADMIN });
-    return;
-  }
-  if (hash.startsWith("#/profile")) {
-    mountProfile(el, { db, auth, user: CURRENT_USER, isAdmin: IS_ADMIN });
-    return;
-  }
-  if (hash.startsWith("#/chat")) {
-    mountChat(el, { db, auth, user: CURRENT_USER, isAdmin: IS_ADMIN });
-    return;
-  }
-  if (hash.startsWith("#/settings")) {
-    mountSettings(el, { db, auth, user: CURRENT_USER, isAdmin: IS_ADMIN });
-    return;
-  }
-  if (hash.startsWith("#/admin")) {
-    if (IS_ADMIN) {
-      mountAdmin(el, { db, auth, user: CURRENT_USER, isAdmin: IS_ADMIN });
-    } else {
-      el.innerHTML = `<section class="card"><h3>Admins only</h3></section>`;
-    }
-    return;
-  }
-  if (hash.startsWith("#/contact")) {
-    mountContact?.(el, { db, auth, user: CURRENT_USER, isAdmin: IS_ADMIN });
-    return;
-  }
-
-  // default
-  mountDashboard(el, { db, auth, user: CURRENT_USER, isAdmin: IS_ADMIN });
-}
-
-// Hash change → route
+// hashchange → render (no refresh needed)
 window.addEventListener("hashchange", () => {
   if (location.hash !== lastHash) renderRoute();
 });
 
-// auth → guard + render
+// auth → guard + initial render
 watchAuth(async (user) => {
   CURRENT_USER = user || null;
-  IS_ADMIN = user ? await isAdmin(user.uid) : false;
-
-  // Admin link visible only for admins
-  const adminLink = document.querySelector('[href="#/admin"]');
-  if (adminLink) adminLink.style.display = IS_ADMIN ? "" : "none";
+  IS_ADMIN = user ? await checkIsAdmin(user.uid) : false;
 
   if (CURRENT_USER && !location.hash) location.hash = "#/dashboard";
   renderRoute();
 });
-
-// First paint
-document.addEventListener("DOMContentLoaded", route);
